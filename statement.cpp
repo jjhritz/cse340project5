@@ -10,6 +10,7 @@ struct StatementNode* parse_stmt_list()
 {
     //create NOOP node as head of list
     struct StatementNode* head = new struct StatementNode;
+    head->type = NOOP_STMT;
 
     //get first statement
     //get token
@@ -31,9 +32,15 @@ struct StatementNode* parse_stmt_list()
             //unget token
             ungetToken();
             //parse statement
-            struct StatementNode* next_stmt = parse_stmt();
+            struct StatementNode* next_stmt = parse_stmt_list();
 
             stmt->next = next_stmt;
+        }
+        //else, we've reached the end of the statement list. Let the caller handle what's next
+        else
+        {
+            ungetToken();
+            stmt->next = NULL;
         }
         //endif
 
@@ -42,11 +49,12 @@ struct StatementNode* parse_stmt_list()
     //else, no more statements in this list; let the caller handle it
     else
     {
+        ungetToken();
         head->next = NULL;
     }
     //endif
 
-    return head;;
+    return head;
 }
 
 struct StatementNode* parse_stmt()
@@ -83,12 +91,14 @@ struct StatementNode* parse_stmt()
             //parse print_stmt
             stmt->print_stmt = print_stmt();
             stmt->type = PRINT_STMT;
+            break;
         }
         //endcase
 
         default:
         {
-            debug("Reaced a statement that isn't PRINT or ASSIGN");
+            debug("Reached a statement that isn't PRINT or ASSIGN");
+            break;
         }
     }
     //endswitch
