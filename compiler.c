@@ -379,6 +379,8 @@ void execute_program(struct StatementNode* program)
 
 int main()
 {
+    //freopen("/home/student/ClionProjects/cse340project5/tests/test_assignment_variables2_operators.txt", "r", stdin);
+
     struct StatementNode * program;
     program = parse_generate_intermediate_representation();
     execute_program(program);
