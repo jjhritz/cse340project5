@@ -4,10 +4,12 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/compiler.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/if.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/statement.cpp" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/compiler.c" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/statement.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/project5.h" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/if.h" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/project5.cpp" isTestSource="false" />
     </content>
     <orderEntry type="sourceFolder" forTests="false" />
