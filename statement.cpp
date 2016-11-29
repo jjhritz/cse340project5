@@ -10,8 +10,9 @@
 struct StatementNode* parse_stmt_list()
 {
     //create NOOP node as head of list
-    struct StatementNode* head = new struct StatementNode;
-    head->type = NOOP_STMT;
+    //struct StatementNode* head = new struct StatementNode;
+    //head->type = NOOP_STMT;
+    struct StatementNode* stmt;
 
     //get first statement
     //get token
@@ -23,7 +24,8 @@ struct StatementNode* parse_stmt_list()
         //unget token
         ungetToken();
         //parse statement
-        struct StatementNode* stmt = parse_stmt();
+        //struct StatementNode* stmt = parse_stmt();
+        stmt = parse_stmt();
 
         //get token
         getToken();
@@ -52,21 +54,21 @@ struct StatementNode* parse_stmt_list()
         else
         {
             ungetToken();
-            stmt->next = NULL;
+            //stmt->next = NULL;
         }
         //endif
 
-        head->next = stmt;
+        //head->next = stmt;
     }
     //else, no more statements in this list; let the caller handle it
     else
     {
         ungetToken();
-        head->next = NULL;
+        //head->next = NULL;
     }
     //endif
 
-    return head;
+    return stmt;
 }
 
 struct StatementNode* parse_stmt()
@@ -126,11 +128,39 @@ struct StatementNode* parse_stmt()
             if(stmt->if_stmt->false_branch == NULL)
             {
                 stmt->if_stmt->false_branch = trailer;
+
+                //add exit point to true branch
+                //create index pointer at true branch
+                struct StatementNode* inst_ptr = stmt->if_stmt->true_branch;
+
+                //while pointer->next is not NULL
+                while(inst_ptr->next != NULL)
+                {
+                    //advance to next instruction
+                    inst_ptr = inst_ptr->next;
+                }
+
+                //assign exit point
+                inst_ptr->next = trailer;
             }
             //else if statement->if_stmt->true_branch is NULL
             else if(stmt->if_stmt->true_branch == NULL)
             {
                 stmt->if_stmt->true_branch = trailer;
+
+                //add exit point to false branch
+                //create index pointer at false branch
+                struct StatementNode* inst_ptr = stmt->if_stmt->false_branch;
+
+                //while pointer->next is not NULL
+                while(inst_ptr->next != NULL)
+                {
+                    //advance to next instruction
+                    inst_ptr = inst_ptr->next;
+                }
+
+                //assign exit point
+                inst_ptr->next = trailer;
             }
             //else, both branches on the IF are not NULL; this shouldn't happen
             else

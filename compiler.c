@@ -379,7 +379,7 @@ void execute_program(struct StatementNode* program)
 
 int main()
 {
-    //freopen("/home/student/ClionProjects/cse340project5/tests/test_assignment_variables2_operators.txt", "r", stdin);
+    //freopen("/home/student/ClionProjects/cse340project5/tests/test_control_ifif4.txt", "r", stdin);
 
     struct StatementNode * program;
     program = parse_generate_intermediate_representation();

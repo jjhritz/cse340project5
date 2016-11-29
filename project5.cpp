@@ -4,20 +4,21 @@
 #include "project5.h"
 #include "statement.h"
 
-struct ValueNode* vars;
+struct ValueNode* vars = NULL;
 int var_count = 0;
 
 struct StatementNode* parse_generate_intermediate_representation()
 {
     //allocate variable array
-    vars = (struct ValueNode*) malloc(sizeof(struct ValueNode));
+    //vars = (struct ValueNode*) malloc(sizeof(struct ValueNode));
 
     //create no-op statement pointer as head
-    struct StatementNode* head = new struct StatementNode;
-    head->type = NOOP_STMT;
+    //struct StatementNode* head = new struct StatementNode;
+    //head->type = NOOP_STMT;
 
     //parse program
-    head->next = parse_program();
+    //head->next = parse_program();
+    struct StatementNode* head = parse_program();
 
     return head;
 }
@@ -69,8 +70,8 @@ void parse_id_list()
 struct StatementNode* parse_body()
 {
     //create NOOP node as head of body
-    struct StatementNode* head = new struct StatementNode;
-    head->type = NOOP_STMT;
+    //struct StatementNode* head = new struct StatementNode;
+    //head->type = NOOP_STMT;
 
     //create statement list node
     struct StatementNode* stmt_list;
@@ -84,8 +85,8 @@ struct StatementNode* parse_body()
         //get next token
         getToken();
 
-        //if type is PRINT or ID
-        if(ttype == PRINT || ttype == ID)
+        //if type is PRINT or ID or IF
+        if(ttype == PRINT || ttype == ID || ttype == IF)
         {
             //unget token
             ungetToken();
@@ -98,7 +99,8 @@ struct StatementNode* parse_body()
             //if type is RBRACE
             if(ttype == RBRACE)
             {
-                head->next = stmt_list;
+                //head->next = stmt_list;
+                return stmt_list;
             }
             //endif
         }
@@ -106,7 +108,7 @@ struct StatementNode* parse_body()
     }
     //endif
 
-    return head;
+    //return head;
 }
 
 bool comp_vars(const ValueNode& a, const ValueNode& b)

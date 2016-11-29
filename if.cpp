@@ -104,6 +104,8 @@ struct IfStatement* parse_if_stmt()
         //if type is LBRACE
         if(ttype == LBRACE)
         {
+            //unget token
+            ungetToken();
             //parse body
             struct StatementNode* body = parse_body();
 
