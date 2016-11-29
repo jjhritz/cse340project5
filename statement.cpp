@@ -5,56 +5,70 @@
 #include <cstdlib>
 #include "project5.h"
 #include "statement.h"
+#include "if.h"
 
 struct StatementNode* parse_stmt_list()
 {
     //create NOOP node as head of list
-    struct StatementNode* head = new struct StatementNode;
-    head->type = NOOP_STMT;
+    //struct StatementNode* head = new struct StatementNode;
+    //head->type = NOOP_STMT;
+    struct StatementNode* stmt;
 
     //get first statement
     //get token
     getToken();
 
-    //if type is ID or PRINT, it's a statement
-    if(ttype == ID || ttype == PRINT)
+    //if type is ID or PRINT or IF, it's a statement
+    if(ttype == ID || ttype == PRINT || ttype == IF)
     {
         //unget token
         ungetToken();
         //parse statement
-        struct StatementNode* stmt = parse_stmt();
+        //struct StatementNode* stmt = parse_stmt();
+        stmt = parse_stmt();
 
         //get token
         getToken();
-        //if type is ID or PRINT, it's another statement
-        if(ttype == ID || ttype == PRINT)
+        //if type is ID or PRINT or IF, it's another statement
+        if(ttype == ID || ttype == PRINT || ttype == IF)
         {
             //unget token
             ungetToken();
             //parse statement
             struct StatementNode* next_stmt = parse_stmt_list();
 
-            stmt->next = next_stmt;
+            //if stmt->type is IF_STMT, there's a trailing NO-OP we need to follow
+            if(stmt->type == IF_STMT)
+            {
+                stmt->next->next = next_stmt;
+            }
+            //else, statement list continues normally
+            else
+            {
+                stmt->next = next_stmt;
+            }
+            //endif
+
         }
         //else, we've reached the end of the statement list. Let the caller handle what's next
         else
         {
             ungetToken();
-            stmt->next = NULL;
+            //stmt->next = NULL;
         }
         //endif
 
-        head->next = stmt;
+        //head->next = stmt;
     }
     //else, no more statements in this list; let the caller handle it
     else
     {
         ungetToken();
-        head->next = NULL;
+        //head->next = NULL;
     }
     //endif
 
-    return head;
+    return stmt;
 }
 
 struct StatementNode* parse_stmt()
@@ -95,9 +109,72 @@ struct StatementNode* parse_stmt()
         }
         //endcase
 
+        //if type is IF, it's an IF statement
+        case IF:
+        {
+            //unget token
+            ungetToken();
+
+            //parse if_stmt
+            stmt->if_stmt = parse_if_stmt();
+            stmt->type = IF_STMT;
+
+            //create NO-OP trailer
+            struct StatementNode* trailer = new struct StatementNode;
+            trailer->type = NOOP_STMT;
+            stmt->next = trailer;
+
+            //if statement->if_stmt->false_branch is NULL
+            if(stmt->if_stmt->false_branch == NULL)
+            {
+                stmt->if_stmt->false_branch = trailer;
+
+                //add exit point to true branch
+                //create index pointer at true branch
+                struct StatementNode* inst_ptr = stmt->if_stmt->true_branch;
+
+                //while pointer->next is not NULL
+                while(inst_ptr->next != NULL)
+                {
+                    //advance to next instruction
+                    inst_ptr = inst_ptr->next;
+                }
+
+                //assign exit point
+                inst_ptr->next = trailer;
+            }
+            //else if statement->if_stmt->true_branch is NULL
+            else if(stmt->if_stmt->true_branch == NULL)
+            {
+                stmt->if_stmt->true_branch = trailer;
+
+                //add exit point to false branch
+                //create index pointer at false branch
+                struct StatementNode* inst_ptr = stmt->if_stmt->false_branch;
+
+                //while pointer->next is not NULL
+                while(inst_ptr->next != NULL)
+                {
+                    //advance to next instruction
+                    inst_ptr = inst_ptr->next;
+                }
+
+                //assign exit point
+                inst_ptr->next = trailer;
+            }
+            //else, both branches on the IF are not NULL; this shouldn't happen
+            else
+            {
+                debug("Both branches of an IF statement are already assigned.");
+            }
+            //endif
+            break;
+        }
+        //endcase
+
         default:
         {
-            debug("Reached a statement that isn't PRINT or ASSIGN");
+            debug("Reached a statement that isn't PRINT or ASSIGN or IF");
             break;
         }
     }
