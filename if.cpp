@@ -17,8 +17,8 @@ struct IfStatement* parse_if_stmt()
     //get token
     getToken();
 
-    //if type is IF
-    if(ttype == IF)
+    //if type is IF or WHILE
+    if(ttype == IF || ttype == WHILE)
     {
         //parse condition
 
@@ -133,7 +133,7 @@ struct IfStatement* parse_if_stmt()
     //else, we're missing the IF token
     else
     {
-        debug("No IF token while parsing IF statement");
+        debug("No IF or WHILE token while parsing IF statement");
     }
     //endif
 

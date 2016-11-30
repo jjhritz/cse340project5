@@ -19,7 +19,7 @@ struct StatementNode* parse_stmt_list()
     getToken();
 
     //if type is ID or PRINT or IF, it's a statement
-    if(ttype == ID || ttype == PRINT || ttype == IF)
+    if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE)
     {
         //unget token
         ungetToken();
@@ -30,7 +30,7 @@ struct StatementNode* parse_stmt_list()
         //get token
         getToken();
         //if type is ID or PRINT or IF, it's another statement
-        if(ttype == ID || ttype == PRINT || ttype == IF)
+        if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE)
         {
             //unget token
             ungetToken();
@@ -172,9 +172,78 @@ struct StatementNode* parse_stmt()
         }
         //endcase
 
+        //if type is IF, it's an IF statement
+        case WHILE:
+        {
+            //unget token
+            ungetToken();
+
+            //parse if_stmt
+            stmt->if_stmt = parse_if_stmt();
+            stmt->type = IF_STMT;
+
+            //create NO-OP trailer
+            struct StatementNode* trailer = new struct StatementNode;
+            trailer->type = NOOP_STMT;
+            stmt->next = trailer;
+
+            //create loopback GOTO
+            struct StatementNode* loopback = new struct StatementNode;
+            loopback->type = GOTO_STMT;
+            loopback->goto_stmt = new struct GotoStatement;
+            loopback->goto_stmt->target = stmt;
+
+            //if statement->if_stmt->false_branch is NULL
+            if(stmt->if_stmt->false_branch == NULL)
+            {
+                stmt->if_stmt->false_branch = trailer;
+
+                //add loopback point to true branch
+                //create index pointer at true branch
+                struct StatementNode* inst_ptr = stmt->if_stmt->true_branch;
+
+                //while pointer->next is not NULL
+                while(inst_ptr->next != NULL)
+                {
+                    //advance to next instruction
+                    inst_ptr = inst_ptr->next;
+                }
+
+                //assign loopback point
+                inst_ptr->next = loopback;
+            }
+            //else if statement->if_stmt->true_branch is NULL
+            else if(stmt->if_stmt->true_branch == NULL)
+            {
+                stmt->if_stmt->true_branch = trailer;
+
+                //add loopback point to false branch
+                //create index pointer at false branch
+                struct StatementNode* inst_ptr = stmt->if_stmt->false_branch;
+
+                //while pointer->next is not NULL
+                while(inst_ptr->next != NULL)
+                {
+                    //advance to next instruction
+                    inst_ptr = inst_ptr->next;
+                }
+
+                //assign loopback point
+                inst_ptr->next = loopback;
+            }
+            //else, both branches on the IF are not NULL; this shouldn't happen
+            else
+            {
+                debug("Both branches of a WHILE statement are already assigned.");
+            }
+            //endif
+            break;
+        }
+            //endcase
+
         default:
         {
-            debug("Reached a statement that isn't PRINT or ASSIGN or IF");
+            debug("Reached a statement that isn't PRINT or ASSIGN or IF or WHILE");
             break;
         }
     }
