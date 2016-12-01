@@ -6,6 +6,7 @@
 #include "project5.h"
 #include "statement.h"
 #include "if.h"
+#include "switch.h"
 
 struct StatementNode* parse_stmt_list()
 {
@@ -19,28 +20,47 @@ struct StatementNode* parse_stmt_list()
     getToken();
 
     //if type is ID or PRINT or IF, it's a statement
-    if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE)
+    if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE || ttype == SWITCH)
     {
+        //store statement token type
+        int stmt_ttype = ttype;
         //unget token
         ungetToken();
         //parse statement
-        //struct StatementNode* stmt = parse_stmt();
         stmt = parse_stmt();
 
         //get token
         getToken();
         //if type is ID or PRINT or IF, it's another statement
-        if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE)
+        if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE || ttype == SWITCH)
         {
             //unget token
             ungetToken();
             //parse statement
             struct StatementNode* next_stmt = parse_stmt_list();
 
-            //if stmt->type is IF_STMT, there's a trailing NO-OP we need to follow
-            if(stmt->type == IF_STMT)
+            //if statement token type is IF or WHILE, there's a trailing NO-OP we need to follow
+            if(stmt_ttype == IF || stmt_ttype == WHILE)
             {
                 stmt->next->next = next_stmt;
+            }
+            //else if statement token type is SWITCH, we need to follow the end of the case list
+            else if(stmt_ttype == SWITCH)
+            {
+                //the end of the case list should be NULL,
+                //so we need to advance through the statement until we reach a null pointer
+
+                //create pointer at statement
+                struct StatementNode* inst_ptr = stmt;
+                //while pointer->next is not NULL
+                while(inst_ptr->next != NULL)
+                {
+                    //advance pointer
+                    inst_ptr  = inst_ptr->next;
+                }
+
+                //we should be at the end of the default case here
+                inst_ptr->next = next_stmt;
             }
             //else, statement list continues normally
             else
@@ -54,17 +74,13 @@ struct StatementNode* parse_stmt_list()
         else
         {
             ungetToken();
-            //stmt->next = NULL;
         }
         //endif
-
-        //head->next = stmt;
     }
     //else, no more statements in this list; let the caller handle it
     else
     {
         ungetToken();
-        //head->next = NULL;
     }
     //endif
 
@@ -239,13 +255,71 @@ struct StatementNode* parse_stmt()
             //endif
             break;
         }
-            //endcase
+        //endcase
+
+        //if type is SWITCH, it's a switch statement
+        case SWITCH:
+        {
+            //get token
+            getToken();
+            //if type is ID
+            if(ttype == ID)
+            {
+                //find and store variable
+                struct ValueNode* switch_var = find_var(token);
+
+                //get token
+                getToken();
+                //if type is LBRACE
+                if(ttype == LBRACE)
+                {
+                    //create GO-TO exit
+                    struct StatementNode* exit = new struct StatementNode;
+                    exit->type = GOTO_STMT;
+                    //create NO-OP trailer
+                    exit->goto_stmt->target = new struct StatementNode;
+                    exit->goto_stmt->target->type = NOOP_STMT;
+
+                    //parse case lise
+                    struct StatementNode* case_list = parse_case_list(exit, switch_var);
+
+                    //get token
+                    getToken();
+
+                    //if token is RBRACE, it's the end of the switch statement
+                    if(ttype == RBRACE)
+                    {
+                        stmt = case_list;
+                    }
+                    //else, no closing RBRACE
+                    else
+                    {
+                        debug("no closing RBRACE on SWITCH statement");
+                    }
+                    //endif
+                }
+                //else, no LBRACE
+                else
+                {
+                    debug("no LBRACE in SWITCH statement");
+                }
+                //endif
+            }
+            //else, ID not found
+            else
+            {
+                debug("No ID after SWITCH token");
+            }
+            //endif
+        }
+        //endcase
 
         default:
         {
             debug("Reached a statement that isn't PRINT or ASSIGN or IF or WHILE");
             break;
         }
+        //endcase
     }
     //endswitch
 
