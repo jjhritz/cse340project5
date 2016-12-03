@@ -86,7 +86,7 @@ struct StatementNode* parse_body()
         getToken();
 
         //if type is PRINT or ID or IF
-        if(ttype == PRINT || ttype == ID || ttype == IF || ttype == WHILE)
+        if(ttype == PRINT || ttype == ID || ttype == IF || ttype == WHILE || ttype == SWITCH)
         {
             //unget token
             ungetToken();

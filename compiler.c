@@ -379,7 +379,7 @@ void execute_program(struct StatementNode* program)
 
 int main()
 {
-    freopen("/home/student/ClionProjects/cse340project5/tests/test_control_whilewhile_if1.txt", "r", stdin);
+    //freopen("/home/student/ClionProjects/cse340project5/tests/test_switch8.txt", "r", stdin);
 
     struct StatementNode * program;
     program = parse_generate_intermediate_representation();

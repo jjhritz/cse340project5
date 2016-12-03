@@ -6,6 +6,7 @@
 #include "project5.h"
 #include "statement.h"
 #include "if.h"
+#include "switch.h"
 
 struct StatementNode* parse_stmt_list()
 {
@@ -18,29 +19,64 @@ struct StatementNode* parse_stmt_list()
     //get token
     getToken();
 
-    //if type is ID or PRINT or IF, it's a statement
-    if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE)
+    //if type is ID or PRINT or IF or WHILE or SWITCH, it's a statement
+    if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE || ttype == SWITCH)
     {
+        //store statement token type
+        int stmt_ttype = ttype;
         //unget token
         ungetToken();
         //parse statement
-        //struct StatementNode* stmt = parse_stmt();
         stmt = parse_stmt();
 
         //get token
         getToken();
-        //if type is ID or PRINT or IF, it's another statement
-        if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE)
+        //if type is ID or PRINT or IF or WHILE or SWITCH, it's another statement
+        if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE || ttype == SWITCH)
         {
             //unget token
             ungetToken();
             //parse statement
             struct StatementNode* next_stmt = parse_stmt_list();
 
-            //if stmt->type is IF_STMT, there's a trailing NO-OP we need to follow
-            if(stmt->type == IF_STMT)
+            //if statement token type is IF or WHILE, there's a trailing NO-OP we need to follow
+            if(stmt_ttype == IF || stmt_ttype == WHILE)
             {
                 stmt->next->next = next_stmt;
+            }
+            //else if statement token type is SWITCH, we need to follow the end of the case list
+            else if(stmt_ttype == SWITCH)
+            {
+                //the end of the case list should be NULL,
+                //so we need to advance through the statement until we reach a null pointer
+
+                //create pointer at statement
+                struct StatementNode* inst_ptr = stmt;
+                //while pointer->next is not NULL
+                while(inst_ptr->next != NULL)
+                {
+                    //if type is GOTO, we need to jump to the target
+                    if(inst_ptr->type == GOTO_STMT)
+                    {
+                        //jump to target
+                        inst_ptr = inst_ptr->goto_stmt->target;
+                    }
+                    //else advance normally
+                    else
+                    {
+                        //advance pointer
+                        inst_ptr  = inst_ptr->next;
+                    }
+                }
+
+                //if type is GOTO, we need to jump to the target
+                if(inst_ptr->type == GOTO_STMT)
+                {
+                    //jump to target
+                    inst_ptr = inst_ptr->goto_stmt->target;
+                }
+                //we should be at the end of the default case here
+                inst_ptr->next = next_stmt;
             }
             //else, statement list continues normally
             else
@@ -54,17 +90,13 @@ struct StatementNode* parse_stmt_list()
         else
         {
             ungetToken();
-            //stmt->next = NULL;
         }
         //endif
-
-        //head->next = stmt;
     }
     //else, no more statements in this list; let the caller handle it
     else
     {
         ungetToken();
-        //head->next = NULL;
     }
     //endif
 
@@ -172,7 +204,7 @@ struct StatementNode* parse_stmt()
         }
         //endcase
 
-        //if type is IF, it's an IF statement
+        //if type is WHILE, it's a WHILE statement
         case WHILE:
         {
             //unget token
@@ -192,6 +224,7 @@ struct StatementNode* parse_stmt()
             loopback->type = GOTO_STMT;
             loopback->goto_stmt = new struct GotoStatement;
             loopback->goto_stmt->target = stmt;
+            loopback->next = trailer;
 
             //if statement->if_stmt->false_branch is NULL
             if(stmt->if_stmt->false_branch == NULL)
@@ -202,14 +235,34 @@ struct StatementNode* parse_stmt()
                 //create index pointer at true branch
                 struct StatementNode* inst_ptr = stmt->if_stmt->true_branch;
 
-                //while pointer->next is not NULL
                 while(inst_ptr->next != NULL)
                 {
-                    //advance to next instruction
+                    /*
+                    //if type is GOTO, we need to jump to the target
+                    if(inst_ptr->type == GOTO_STMT)
+                    {
+                        //jump to target
+                        inst_ptr = inst_ptr->goto_stmt->target;
+                    }
+                    //else advance normally
+                    else
+                    {
+                        //advance pointer
+                        inst_ptr  = inst_ptr->next;
+                    }
+                     */
+
                     inst_ptr = inst_ptr->next;
                 }
 
-                //assign loopback point
+                //if type is GOTO, we need to jump to the target
+                /*if(inst_ptr->type == GOTO_STMT)
+                {
+                    //jump to target
+                    inst_ptr = inst_ptr->goto_stmt->target;
+                }
+                 */
+
                 inst_ptr->next = loopback;
             }
             //else if statement->if_stmt->true_branch is NULL
@@ -239,13 +292,76 @@ struct StatementNode* parse_stmt()
             //endif
             break;
         }
-            //endcase
+        //endcase
+
+        //if type is SWITCH, it's a switch statement
+        case SWITCH:
+        {
+            //get token
+            getToken();
+            //if type is ID
+            if(ttype == ID)
+            {
+                //find and store variable
+                struct ValueNode* switch_var = find_var(token);
+
+                //get token
+                getToken();
+                //if type is LBRACE
+                if(ttype == LBRACE)
+                {
+                    //create GO-TO exit
+                    struct StatementNode* exit = new struct StatementNode;
+                    exit->type = GOTO_STMT;
+                    exit->goto_stmt = new struct GotoStatement;
+
+                    //create NO-OP trailer
+                    exit->goto_stmt->target = new struct StatementNode;
+                    exit->goto_stmt->target->type = NOOP_STMT;
+                    exit->next = exit->goto_stmt->target;
+
+                    //parse case lise
+                    struct StatementNode* case_list = parse_case_list(exit, switch_var);
+
+                    //get token
+                    getToken();
+
+                    //if token is RBRACE, it's the end of the switch statement
+                    if(ttype == RBRACE)
+                    {
+                        stmt = case_list;
+                    }
+                    //else, no closing RBRACE
+                    else
+                    {
+                        debug("no closing RBRACE on SWITCH statement");
+                    }
+                    //endif
+                }
+                //else, no LBRACE
+                else
+                {
+                    debug("no LBRACE in SWITCH statement");
+                }
+                //endif
+            }
+            //else, ID not found
+            else
+            {
+                debug("No ID after SWITCH token");
+            }
+            //endif
+
+            break;
+        }
+        //endcase
 
         default:
         {
-            debug("Reached a statement that isn't PRINT or ASSIGN or IF or WHILE");
+            debug("Reached a statement that isn't PRINT or ASSIGN or IF or WHILE or SWITCH");
             break;
         }
+        //endcase
     }
     //endswitch
 
