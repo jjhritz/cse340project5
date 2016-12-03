@@ -19,7 +19,7 @@ struct StatementNode* parse_stmt_list()
     //get token
     getToken();
 
-    //if type is ID or PRINT or IF, it's a statement
+    //if type is ID or PRINT or IF or WHILE or SWITCH, it's a statement
     if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE || ttype == SWITCH)
     {
         //store statement token type
@@ -31,7 +31,7 @@ struct StatementNode* parse_stmt_list()
 
         //get token
         getToken();
-        //if type is ID or PRINT or IF, it's another statement
+        //if type is ID or PRINT or IF or WHILE or SWITCH, it's another statement
         if(ttype == ID || ttype == PRINT || ttype == IF || ttype == WHILE || ttype == SWITCH)
         {
             //unget token
@@ -55,10 +55,26 @@ struct StatementNode* parse_stmt_list()
                 //while pointer->next is not NULL
                 while(inst_ptr->next != NULL)
                 {
-                    //advance pointer
-                    inst_ptr  = inst_ptr->next;
+                    //if type is GOTO, we need to jump to the target
+                    if(inst_ptr->type == GOTO_STMT)
+                    {
+                        //jump to target
+                        inst_ptr = inst_ptr->goto_stmt->target;
+                    }
+                    //else advance normally
+                    else
+                    {
+                        //advance pointer
+                        inst_ptr  = inst_ptr->next;
+                    }
                 }
 
+                //if type is GOTO, we need to jump to the target
+                if(inst_ptr->type == GOTO_STMT)
+                {
+                    //jump to target
+                    inst_ptr = inst_ptr->goto_stmt->target;
+                }
                 //we should be at the end of the default case here
                 inst_ptr->next = next_stmt;
             }
@@ -188,7 +204,7 @@ struct StatementNode* parse_stmt()
         }
         //endcase
 
-        //if type is IF, it's an IF statement
+        //if type is WHILE, it's a WHILE statement
         case WHILE:
         {
             //unget token
@@ -208,6 +224,7 @@ struct StatementNode* parse_stmt()
             loopback->type = GOTO_STMT;
             loopback->goto_stmt = new struct GotoStatement;
             loopback->goto_stmt->target = stmt;
+            loopback->next = trailer;
 
             //if statement->if_stmt->false_branch is NULL
             if(stmt->if_stmt->false_branch == NULL)
@@ -218,14 +235,34 @@ struct StatementNode* parse_stmt()
                 //create index pointer at true branch
                 struct StatementNode* inst_ptr = stmt->if_stmt->true_branch;
 
-                //while pointer->next is not NULL
                 while(inst_ptr->next != NULL)
                 {
-                    //advance to next instruction
+                    /*
+                    //if type is GOTO, we need to jump to the target
+                    if(inst_ptr->type == GOTO_STMT)
+                    {
+                        //jump to target
+                        inst_ptr = inst_ptr->goto_stmt->target;
+                    }
+                    //else advance normally
+                    else
+                    {
+                        //advance pointer
+                        inst_ptr  = inst_ptr->next;
+                    }
+                     */
+
                     inst_ptr = inst_ptr->next;
                 }
 
-                //assign loopback point
+                //if type is GOTO, we need to jump to the target
+                /*if(inst_ptr->type == GOTO_STMT)
+                {
+                    //jump to target
+                    inst_ptr = inst_ptr->goto_stmt->target;
+                }
+                 */
+
                 inst_ptr->next = loopback;
             }
             //else if statement->if_stmt->true_branch is NULL
@@ -276,9 +313,12 @@ struct StatementNode* parse_stmt()
                     //create GO-TO exit
                     struct StatementNode* exit = new struct StatementNode;
                     exit->type = GOTO_STMT;
+                    exit->goto_stmt = new struct GotoStatement;
+
                     //create NO-OP trailer
                     exit->goto_stmt->target = new struct StatementNode;
                     exit->goto_stmt->target->type = NOOP_STMT;
+                    exit->next = exit->goto_stmt->target;
 
                     //parse case lise
                     struct StatementNode* case_list = parse_case_list(exit, switch_var);
@@ -311,12 +351,14 @@ struct StatementNode* parse_stmt()
                 debug("No ID after SWITCH token");
             }
             //endif
+
+            break;
         }
         //endcase
 
         default:
         {
-            debug("Reached a statement that isn't PRINT or ASSIGN or IF or WHILE");
+            debug("Reached a statement that isn't PRINT or ASSIGN or IF or WHILE or SWITCH");
             break;
         }
         //endcase

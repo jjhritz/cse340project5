@@ -28,6 +28,9 @@ struct StatementNode* parse_case_list(struct StatementNode* exit, struct ValueNo
         //if type is CASE, it's another case or case_list
         if(ttype == CASE)
         {
+            //unget token
+            ungetToken();
+
             //get the next case list
             struct StatementNode* next_case_list = parse_case_list(exit, var);
             case_list->next = next_case_list;
@@ -36,13 +39,23 @@ struct StatementNode* parse_case_list(struct StatementNode* exit, struct ValueNo
         //else if type is default, it's the default and last case
         else if(ttype == DEFAULT)
         {
+            //unget token
+            ungetToken();
+
+            //get the next case
             struct StatementNode* next_case = parse_case(exit, var);
             case_list->next = next_case;
             case_list->if_stmt->true_branch = next_case;
         }
-        //else, let the caller handle it
+        //else, it's the end of the list; let the caller handle it
         else
         {
+            //set true branch of last case to exit
+            case_list->if_stmt->true_branch = exit;
+
+            //set the next pointer to the NO-OP trailer
+            case_list->next = exit->goto_stmt->target;
+
             //unget token
             ungetToken();
         }
@@ -74,10 +87,22 @@ struct StatementNode* parse_case(struct StatementNode* exit, struct ValueNode* v
         //get token
         getToken();
         //if type is NUM, we have our switch value
-        if(ttype == NUM)
+        if((case_ttype == CASE && ttype == NUM)
+            || case_ttype == DEFAULT)
         {
-            //store token as integer
-            int case_val = atoi(token);
+            int case_val;
+            //if case_type is CASE, we need to store the value
+            if(case_ttype == CASE)
+            {
+                //store token as integer
+                 case_val = atoi(token);
+            }
+            //else if case_type is DEFAULT, we just ate the COLON
+            else if(case_ttype == DEFAULT)
+            {
+                //unget token
+                ungetToken();
+            }
 
             //get token
             getToken();
@@ -91,8 +116,14 @@ struct StatementNode* parse_case(struct StatementNode* exit, struct ValueNode* v
                 //if case_type is CASE, we need a comparison
                 if(case_ttype == CASE)
                 {
+                    //allocate cas;
+                    cas = new struct StatementNode;
+
                     //set cas's type to IF statement
                     cas->type = IF_STMT;
+
+                    //allocate IF statement
+                    cas->if_stmt = new IfStatement;
 
                     //store the operands
                     cas->if_stmt->condition_operand1 = var;
